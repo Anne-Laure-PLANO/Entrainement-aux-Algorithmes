@@ -1,4 +1,4 @@
-// ce projet présente encore quelques problèmes de codage, qui sont en cours de résolution
+// ce projet est en cours de finition. Il reste des arguments à inclure (cases bloquées pendant 2 tours, déblocage du joueurs si l'adversaire tombe sur sa case)
 
 int[]tab_plateau;
 int largeurCases = 23;
@@ -8,6 +8,7 @@ int joueurActuel = 0;
 boolean[] tab_canIPlay; 
 boolean[] tab_firstPlay;
 int nbDeJoueurs = 3;
+boolean gameOver = false;
 int[] tab_positionJoueurs ;
 int [] tab_penaliteJoueurs;
 
@@ -25,44 +26,78 @@ void setup() {
 }
 
 
+
+
 void draw() {
   background(155, 155, 155);
   dessiner_tab_plateau(tab_plateau, hauteurCases, largeurCases);
   println();
+  if (gameOver){
+  noLoop();
+}
+  //test si le joueur peut jouer, sinon s'il a des points de tour de pénalité. si oui, on décrémente.
+  boolean JoueurBloque = true;
+  while (JoueurBloque){
+    JoueurBloque = canPlayerPlay (tab_canIPlay, joueurActuel);
+    if (JoueurBloque){
+      tab_penaliteJoueurs[joueurActuel] = decreasePenality(tab_penaliteJoueurs, joueurActuel);
+      tab_canIPlay[joueurActuel] = leveeBlocage (tab_penaliteJoueurs, joueurActuel, tab_positionJoueurs);
+      joueurActuel = nextPlayer(joueurActuel, nbDeJoueurs);
+    }
+  }
   println("tour du joueur : " + int(joueurActuel));
+  println("le joueur n°" + joueurActuel + " commence son tour à la position " + tab_positionJoueurs[joueurActuel]);
+
+  int positionInitiale = tab_positionJoueurs[joueurActuel];
+  int valeurDe1 = lancerDes();
+  int valeurDe2 = lancerDes();
+  println("le joueur a fait un "+valeurDe1 + " et un " + valeurDe2);
+  int totalDes = valeurDe1 + valeurDe2;
+
+  tab_positionJoueurs[joueurActuel] = testCaseOie_et_incrementationScore (tab_positionJoueurs, joueurActuel, totalDes, tab_firstPlay) ;
+ 
   boolean joueurFirstPlay = testFirstPlay(tab_firstPlay, joueurActuel);
   if(joueurFirstPlay){
+    tab_positionJoueurs[joueurActuel] = conditionPremierTour (valeurDe1, valeurDe2, totalDes, joueurActuel, tab_positionJoueurs);
     tab_firstPlay[joueurActuel] = false;
   }
-  
-  //test si le joueur peut jouer, sinon s'il a des points de tour de pénalité. si oui, on décrémente.
-  if (!tab_canIPlay[joueurActuel]){ 
-    if (tab_penaliteJoueurs[joueurActuel] >0) {
-      tab_penaliteJoueurs[joueurActuel] -=1;
-      if (tab_penaliteJoueurs[joueurActuel]==0){
-        tab_canIPlay[joueurActuel]=true;
-      }
-    }
-    joueurActuel = nextPlayer(joueurActuel, nbDeJoueurs);
 
-    redraw();
-  }
-  
-  tab_positionJoueurs[joueurActuel] = lancerDes_et_calculNouvellePosition(tab_positionJoueurs, joueurActuel, tab_plateau, joueurFirstPlay, tab_canIPlay);
-  
-  
-  tab_canIPlay = isAVictory (joueurActuel, tab_canIPlay, nbDeJoueurs );
-  afficherJoueurs( tab_positionJoueurs, tab_plateau, hauteurCases, nbDeJoueurs);
-  tab_canIPlay = isAVictory (tab_positionJoueurs[joueurActuel], tab_canIPlay, nbDeJoueurs );
-  joueurActuel = nextPlayer(joueurActuel, nbDeJoueurs);
-  noLoop();
+tab_positionJoueurs[joueurActuel] = ifPositionIsSpecialCase (tab_positionJoueurs, joueurActuel);
+tab_canIPlay[joueurActuel] = ifPositionIsLockedCase (tab_positionJoueurs, joueurActuel, tab_canIPlay);
+tab_positionJoueurs = verifierSiPositionDejaOccupee (tab_positionJoueurs, joueurActuel, positionInitiale);
+gameOver = isAVictory (joueurActuel, tab_positionJoueurs);
+ 
+println("le joueur n°" + joueurActuel + " est à la position " + tab_positionJoueurs[joueurActuel]);
+afficherJoueurs(tab_positionJoueurs, tab_plateau, hauteurCases, nbDeJoueurs);
+joueurActuel = nextPlayer(joueurActuel, nbDeJoueurs);
+noLoop();
 
 }
+
+
+boolean isAVictory (int joueurConcerne, int[] tableau_scoreJoueurs){
+  if (tableau_scoreJoueurs[joueurConcerne]==63) {
+    fill(255,0,0);
+    textSize(128);
+    text("Jeu fini, bravo au gagnant !", 900, 150);
+    return true;
+  }
+  return false;
+}
+
+
+int lancerDes () {
+  int valeur = int(random(1, 7));
+  return valeur;
+}
+
 
 void mouseClicked(){
- redraw(); 
-  
+ if (!gameOver) {
+   redraw(); 
+ }
 }
+
 
 void afficherJoueurs (int[] positionJoueurs, int[] tab_plateau, int hauteurCases, int nbDeJoueurs) {
   color couleur_joueur;
@@ -88,24 +123,40 @@ void afficherJoueurs (int[] positionJoueurs, int[] tab_plateau, int hauteurCases
     }
 }
 
+
+boolean canPlayerPlay (boolean[]tab_canIPlay, int joueurActuel){
+   if (!tab_canIPlay[joueurActuel]){ 
+    return true;
+  } else {
+    return false;
+  }
+}
+
+
+int decreasePenality (int[] tab_penalite, int joueurConcerne){
+   if (tab_penalite[joueurConcerne]>0){
+     return tab_penalite[joueurConcerne]-1;
+   } else {
+     return tab_penalite[joueurConcerne];
+   }
+}
+
+
+boolean leveeBlocage (int[]tab_penaliteJoueur, int joueurActuel, int[] tab_positionJoueurs){
+  if (tab_penaliteJoueur[joueurActuel]==0 && tab_positionJoueurs[joueurActuel] != 3 && tab_positionJoueurs[joueurActuel] != 52){
+    return false;
+  } else {
+    return true;
+  }
+} 
+
+
 boolean testFirstPlay (boolean[] tab_isFirstPlay, int joueurConcerne){
   if (tab_isFirstPlay[joueurConcerne]){
     return true;
   }else {
     return false;
-}
-}
-
-boolean[] isAVictory (int positionJoueur, boolean[] canIPlay, int nbDeJoueurs ){
-  if (positionJoueur==63) {
-    fill(255,0,0);
-    textSize(128);
-    text("Jeu fini, bravo au gagnant !", 900, 150);
-    for (int i = 0 ;1< nbDeJoueurs ; i++){
-      canIPlay[i] = false;
-    }
   }
-  return canIPlay;
 }
 
 
@@ -123,49 +174,26 @@ int[] init_tableau_position_joueurs(int nbJoueurs) {
   int[] ScoreJoueurs = new int [nbJoueurs];
   return ScoreJoueurs;
 }
+
+
 int conditionPremierTour (int valeurDe1, int valeurDe2, int sommeDes, int joueurConcerne, int[]listeJoueurs){
+  println("test des conditions du premier tour");
   if (valeurDe1==6 && valeurDe2==3 || valeurDe1==3 && valeurDe2==6){
+    println("Le joueur a fait un 3 et un 6, il va directement à la case 26");
     listeJoueurs[joueurConcerne]=26;
   }else if (valeurDe1==4 && valeurDe2==5 || valeurDe1==5 && valeurDe2==4) {
+    println("le joueur a fait un 4 et un 5, il va directement à la case 53");
     listeJoueurs[joueurConcerne]=53;
   }else if (sommeDes==6) {
+    println("le joueur a obtenu un résultat de 6, il va directement à la case 12");
     listeJoueurs[joueurConcerne]=12;
   }
   return listeJoueurs[joueurConcerne];
 }
   
 
-int lancerDes_et_calculNouvellePosition (int[] Score_Joueurs, int joueur, int [] tab_plateau, boolean isPremierTour, boolean[] tab_canIPlay) {
-  int positionInitialeJoueur = Score_Joueurs[joueur];
-  int valeur_de1 = (int)random(1, 7);
-  println("valeur du dé n°1 : "+ valeur_de1);
-  int valeur_de2 = (int)random(1, 7);
-  println("valeur du dé n°2 : "+ valeur_de2);
-  int total_des = valeur_de1 + valeur_de2;
-  println("total des dés : "+total_des);
-  if (isPremierTour){
-    Score_Joueurs[joueur]= conditionPremierTour (valeur_de1, valeur_de2, total_des, joueur, Score_Joueurs);
-  } 
-  
-  Score_Joueurs[joueur] = testsipositionEstDoubleValeurDes (Score_Joueurs, joueur, total_des); //pour cases compte double
-  
-  if (Score_Joueurs[joueur]> tab_plateau.length-1) {
-    Score_Joueurs[joueur] = 63 - (Score_Joueurs[joueur] - 63);
-  }
-  tab_canIPlay[joueur] = ifPositionIsLockedCase (Score_Joueurs, joueur, tab_canIPlay);
-
-  Score_Joueurs[joueur] = ifPositionIsSpecialCase (Score_Joueurs, joueur, total_des);
-  Score_Joueurs = verifierSiPositionDejaOccupee (Score_Joueurs, joueur, positionInitialeJoueur);
-  
-  println("score du joueur : " + Score_Joueurs[joueur]);
-  return Score_Joueurs[joueur];
-}
-
-
-
-
-
 int[] verifierSiPositionDejaOccupee (int[]liste_score_joueurs, int positionJoueurConcerne, int positionInitialeJoueurConcerne){
+  println("test si la position est déjà occupée");
   for (int i=0 ; i< nbDeJoueurs ; i++){
      if (positionJoueurConcerne == i) {
      continue;
@@ -179,20 +207,31 @@ int[] verifierSiPositionDejaOccupee (int[]liste_score_joueurs, int positionJoueu
 }
 
 
-int testsipositionEstDoubleValeurDes (int[] tableauJoueur, int joueurConcerne, int total_des) {
-  if ((tableauJoueur[joueurConcerne] == 9) ||(tableauJoueur[joueurConcerne] == 18) || (tableauJoueur[joueurConcerne] == 27) || (tableauJoueur[joueurConcerne] ==36) || (tableauJoueur[joueurConcerne] ==45) ||  (tableauJoueur[joueurConcerne] ==54)) {
-    tableauJoueur[joueurConcerne] += total_des;
-    println("le joueur est tombé sur une oie, la valeur des dés est doublée.");
-    
-    tableauJoueur[joueurConcerne] = testsipositionEstDoubleValeurDes(tableauJoueur, joueurConcerne, total_des);
+int testCaseOie_et_incrementationScore (int[] tableauJoueur, int joueurConcerne, int total_des, boolean[] tab_isFirstPlay) {
+  println("test si la case est une oie");
+  int[] casesOie = {9, 18, 27, 36, 45, 54};
+  int scoreJoueur = tableauJoueur[joueurConcerne] + total_des;
+  
+  for ( int i=0; i<casesOie.length ; i++) {
+    if (casesOie[i]== scoreJoueur && !tab_isFirstPlay[joueurConcerne]) {
+      println("le joueur est tombé sur une oie, la valeur des dés est doublée.");
+      scoreJoueur +=total_des;
+    }
   }
-  else if (tableauJoueur[joueurConcerne]> 63) {
-    tableauJoueur[joueurConcerne] = 63 - (tableauJoueur[joueurConcerne] - 63);
+  if (scoreJoueur> 63) {
+    println("le score du joueur est supérieur au plateau, il doit reculer");
+    scoreJoueur = 63 - (scoreJoueur - 63);
+    if (scoreJoueur == 54){
+      println("en reculant, le joueur est tombé sur une case oie. Il peut avancer de nouveau de la somme de ses dés");
+      scoreJoueur += total_des;
+    }
   }
-  return tableauJoueur[joueurConcerne];
+  return scoreJoueur;
 }
 
+
 boolean ifPositionIsLockedCase (int[]tableauJoueur, int joueurConcerne, boolean[] tableauCanIPlay){
+  println("vérification si le joueur est tombé sur une case verrouillante");
   switch (tableauJoueur[joueurConcerne]) {
     case 3 :
       println("le joueur n°" + joueurConcerne + " est tombé dans le puits. Il est bloqué jusqu'à ce qu'un autre joueur prenne sa place.");
@@ -205,7 +244,9 @@ boolean ifPositionIsLockedCase (int[]tableauJoueur, int joueurConcerne, boolean[
   }
 }
 
-int ifPositionIsSpecialCase (int[] tableauJoueur, int joueurConcerne, int total_des) {
+
+int ifPositionIsSpecialCase (int[] tableauJoueur, int joueurConcerne) {
+  println("vérification si le joueur est tombé sur une case spéciale");
   switch (tableauJoueur[joueurConcerne]){      
     case 42 :
       println("Le joueur n°" + joueurConcerne + " s'est perdu dans le labyrinthe. Il retourne à la case 30.");
@@ -214,8 +255,8 @@ int ifPositionIsSpecialCase (int[] tableauJoueur, int joueurConcerne, int total_
       println("Le joueur n°" + joueurConcerne + " est tombé sur la case tête de mort. Adieux petite oie, tu retournes à la case départ.");
       return tableauJoueur[joueurConcerne]=0;
     default :
+      return tableauJoueur[joueurConcerne];
     }
-  return tableauJoueur[joueurConcerne] + total_des;
 }
 
 
