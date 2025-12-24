@@ -32,9 +32,7 @@ void draw() {
   background(155, 155, 155);
   dessiner_tab_plateau(tab_plateau, hauteurCases, largeurCases);
   println();
-  if (gameOver){
-  noLoop();
-}
+  
   //test si le joueur peut jouer, sinon s'il a des points de tour de pénalité. si oui, on décrémente.
   boolean JoueurBloque = true;
   while (JoueurBloque){
@@ -205,6 +203,7 @@ int[] verifierSiPositionDejaOccupee (int[]liste_score_joueurs, int positionJoueu
    }
    return liste_score_joueurs;
 }
+
 
 
 int testCaseOie_et_incrementationScore (int[] tableauJoueur, int joueurConcerne, int total_des, boolean[] tab_isFirstPlay) {
